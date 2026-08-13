@@ -32,6 +32,8 @@ var _flipper_moved := false
 
 var _return_start := -1
 var _return_frames := -1
+var _io_ok := false
+var _build_ok := false
 
 func _ready() -> void:
 	_spike = get_parent() as Node3D
@@ -57,9 +59,13 @@ func _physics_process(_delta: float) -> void:
 	_frames += 1
 	if _ball == null:
 		_ball = _spike.get_node_or_null("Ball")
-		_ramp = _spike.get_node_or_null("Components/Ramp01")
-		_left_flipper = _spike.get_node_or_null("Components/Flippers/LeftFlipper")
+		_ramp = _spike.get_node_or_null("Table/Ramp01")
+		_left_flipper = _spike.get_node_or_null("Table/LeftFlipper")
 		return
+
+	# Table-definition round-trip (serialize -> JSON -> parse -> build).
+	if _frames == 3:
+		_run_table_io_test()
 
 	var pos := _ball.global_position
 	var speed := _ball.linear_velocity.length()
@@ -124,6 +130,25 @@ func _physics_process(_delta: float) -> void:
 		_report()
 		get_tree().quit()
 
+func _run_table_io_test() -> void:
+	var table := _spike.get_node_or_null("Table")
+	if table == null:
+		print("TABLE IO: no Table node")
+		return
+	var def := TableLoader.serialize(table, "test", "Test", {})
+	var n1 := def.components.size()
+	var def2 := TableDefinition.from_json(def.to_json())
+	_io_ok = def2 != null and def2.components.size() == n1 and n1 > 0
+	print("TABLE IO: serialized %d components; JSON round-trip ok=%s" % [n1, str(_io_ok)])
+	# Build the round-tripped definition into a throwaway container.
+	var tmp := Node3D.new()
+	_spike.add_child(tmp)
+	var result := TableLoader.build(def2, tmp)
+	_build_ok = result["built"] == n1 and (result["errors"] as Array).is_empty()
+	print("TABLE BUILD: built %d/%d, errors=%d, ok=%s"
+		% [result["built"], n1, (result["errors"] as Array).size(), str(_build_ok)])
+	tmp.queue_free()
+
 func _report() -> void:
 	print("--- SELFTEST SUMMARY ---")
 	print("min_y=%.2f  max_y=%.2f  max_speed=%.1f (clamp 90)" % [_min_y, _max_y, _max_speed])
@@ -131,8 +156,10 @@ func _report() -> void:
 	print("reached_upper=%s  flipper_moved=%s" % [str(_reached_upper), str(_flipper_moved)])
 	print("bumpers=%d  slings=%d  ramp_completions=%d  drains=%d" % [_bumpers, _slings, _ramps, _drains])
 	print("return_frames(top->mid, lower=weightier)=%d" % _return_frames)
+	print("table_io_ok=%s  table_build_ok=%s" % [str(_io_ok), str(_build_ok)])
 	var in_bounds := _min_y > -1.0 and _max_abs_x < 8.0 and _max_abs_z < 16.0
 	var ok := in_bounds and _max_speed <= 91.0 and _reached_upper and _flipper_moved \
-		and _bumpers >= 1 and _slings >= 1 and _ramps >= 1 and _drains >= 1
+		and _bumpers >= 1 and _slings >= 1 and _ramps >= 1 and _drains >= 1 \
+		and _io_ok and _build_ok
 	print("in_bounds=%s" % str(in_bounds))
 	print("RESULT: %s" % ("PASS" if ok else "CHECK"))

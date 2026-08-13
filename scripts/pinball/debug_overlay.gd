@@ -96,5 +96,5 @@ func _process(_delta: float) -> void:
 		% [tuning.bumper_impulse, tuning.slingshot_impulse, tuning.launcher_strength])
 	lines.append("")
 	lines.append("CONTROLS  A/D or LB/RB flippers | Space/A hold+release launch")
-	lines.append("          Q/E nudge | R reset | F5 restart | F3 overlay | F4 live tuning | Esc pause")
+	lines.append("          Q/E nudge | R reset | F5 restart | F3 overlay | F4 tuning | F2 EDIT MODE | Esc pause")
 	_label.text = "\n".join(lines)

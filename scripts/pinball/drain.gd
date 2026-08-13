@@ -41,7 +41,7 @@ func _rebuild() -> void:
 	mesh_box.material = mat
 	add_child(mesh)
 
-	if not Engine.is_editor_hint():
+	if not Engine.is_editor_hint() and not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 
 func _on_body_entered(body: Node) -> void:

@@ -56,8 +56,10 @@ func _rebuild() -> void:
 	add_child(mesh)
 
 	if not Engine.is_editor_hint():
-		body_entered.connect(_on_body_entered)
-		body_exited.connect(_on_body_exited)
+		if not body_entered.is_connected(_on_body_entered):
+			body_entered.connect(_on_body_entered)
+		if not body_exited.is_connected(_on_body_exited):
+			body_exited.connect(_on_body_exited)
 
 func get_charge() -> float:
 	return _charge

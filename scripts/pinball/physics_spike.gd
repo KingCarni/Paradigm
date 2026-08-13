@@ -3,29 +3,27 @@ extends Node3D
 
 ## Physics-spike lifecycle coordinator (DISPOSABLE prototype harness).
 ##
-## The table itself is authored in physics_spike.tscn: floor, walls, lane, drain,
-## flippers, slingshots, bumpers, ramp, ball, spawn marker and plunger are all
-## scene nodes with editable transforms. This script builds NO table geometry and
-## places NO component (see AGENTS.md "Production table authoring — HARD RULE").
-##
-## Its only jobs: keep the active ball in play (respawn on drain, using the
-## authored BallSpawn marker), configure the cosmetic environment, mount the debug
-## tools (overlay, live tuning panel, dead-state watchdog) and route debug hotkeys.
-## It is not a god controller and knows nothing about scoring/combat/progression.
+## The table lives under the authored `Table` node (editable component instances)
+## and can equally be built from a JSON table definition (see TableLoader). This
+## script builds NO geometry and places NO component (AGENTS.md HARD RULE). It
+## keeps the ball in play (respawn at the authored BallSpawn marker), sets up the
+## cosmetic environment, mounts the debug tools (overlay, live tuning, watchdog,
+## Edit Mode) and routes hotkeys. Not a god controller.
 
 @export var tuning: PinballTuning
 
+@onready var _table: Node3D = $Table
 @onready var _ball: PinballBall = $Ball
-@onready var _ball_spawn: Marker3D = $BallSpawn
-@onready var _plunger: Plunger = $Plunger
 @onready var _debug_root: Node = $Debug
 @onready var _world_env: WorldEnvironment = $Environment/WorldEnvironment
-@onready var _left_flipper: Flipper = $Components/Flippers/LeftFlipper
-@onready var _right_flipper: Flipper = $Components/Flippers/RightFlipper
+
+const DEFAULT_TABLE_PATH: String = "res://data/pinball/tables/default_table.json"
+const FALLBACK_SPAWN: Vector3 = Vector3(5.95, 0.4, 13.0)
 
 var _overlay: DebugOverlay
 var _panel: TuningPanel
 var _watchdog: BallWatchdog
+var _edit_mode: EditMode
 var _baseline: PinballTuning
 var _screenshot_countdown: int = -1
 
@@ -35,22 +33,52 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	_ensure_environment()
-	# Immutable snapshot of the authored baseline for the panel's "reset" action.
 	_baseline = tuning.duplicate()
+
+	# Dev hook: rebuild the table from the JSON definition to prove the load path.
+	if OS.get_cmdline_user_args().has("loadtable"):
+		_boot_from_definition()
 
 	_mount_debug_tools()
 
 	GameEvents.ball_drained.connect(_on_ball_drained)
-	print("[PhysicsSpike] Scene-authored table ready. Spawn at ", _ball_spawn.global_position)
+	reset_ball()
+	print("[PhysicsSpike] Ready. Table children: ", _table.get_child_count())
 
+	# Dev hook: export the authored table to the default JSON definition and quit.
+	if OS.get_cmdline_user_args().has("exporttable"):
+		_export_default_table()
+		return
 	if OS.get_cmdline_user_args().has("selftest"):
 		add_child(preload("res://tools/selftest_probe.gd").new())
+	if OS.get_cmdline_user_args().has("edittest"):
+		add_child(preload("res://tools/edit_mode_probe.gd").new())
 	if OS.get_cmdline_user_args().has("screenshot"):
 		_screenshot_countdown = 20
+	if OS.get_cmdline_user_args().has("editshot"):
+		_edit_mode.toggle()
+		_edit_mode._select(_edit_mode._editables.find(_find_left_flipper()))
+		_screenshot_countdown = 20
+
+func _boot_from_definition() -> void:
+	var def := TableDefinition.load_from(DEFAULT_TABLE_PATH)
+	if def == null:
+		push_error("[PhysicsSpike] --loadtable: could not load " + DEFAULT_TABLE_PATH)
+		return
+	var result := TableLoader.build(def, _table)
+	print("[PhysicsSpike] Built table from definition: %d components, %d errors"
+		% [result["built"], (result["errors"] as Array).size()])
+
+func _export_default_table() -> void:
+	DirAccess.make_dir_recursive_absolute("res://data/pinball/tables")
+	var def := TableLoader.serialize(_table, "physics_spike_default", "Physics Spike (default)",
+		{"tuning": "res://data/pinball/table_tuning.tres"})
+	var err := def.save_to(DEFAULT_TABLE_PATH)
+	print("[PhysicsSpike] Exported default table (%d components) to %s (err %d)"
+		% [def.components.size(), ProjectSettings.globalize_path(DEFAULT_TABLE_PATH), err])
+	get_tree().quit()
 
 func _ensure_environment() -> void:
-	# Cosmetic only (not table geometry): give the authored WorldEnvironment an
-	# environment if it lacks one, using named constants to avoid enum-int drift.
 	if _world_env == null or _world_env.environment != null:
 		return
 	var env := Environment.new()
@@ -66,15 +94,11 @@ func _mount_debug_tools() -> void:
 	_overlay.name = "DebugOverlay"
 	_overlay.tuning = tuning
 	_debug_root.add_child(_overlay)
-	_overlay.ball = _ball
-	_overlay.plunger = _plunger
-	_overlay.left_flipper = _left_flipper
 
 	_watchdog = preload("res://scripts/pinball/ball_watchdog.gd").new()
 	_watchdog.name = "BallWatchdog"
 	_watchdog.ball = _ball
 	_watchdog.overlay = _overlay
-	_watchdog.spawn_marker = _ball_spawn
 	_debug_root.add_child(_watchdog)
 
 	_panel = preload("res://scripts/pinball/tuning_panel.gd").new()
@@ -84,6 +108,46 @@ func _mount_debug_tools() -> void:
 	_panel.ball = _ball
 	_debug_root.add_child(_panel)
 
+	_edit_mode = preload("res://scripts/pinball/edit_mode.gd").new()
+	_edit_mode.name = "EditMode"
+	_edit_mode.table = _table
+	_edit_mode.spike = self
+	_debug_root.add_child(_edit_mode)
+
+	_refresh_table_refs()
+
+## Re-point debug tools at the current table components (after an Edit Mode load).
+func _refresh_table_refs() -> void:
+	_overlay.ball = _ball
+	_overlay.plunger = _find_plunger()
+	_overlay.left_flipper = _find_left_flipper()
+
+## Called by EditMode after it rebuilds the table from a definition.
+func on_table_rebuilt() -> void:
+	_refresh_table_refs()
+	reset_ball()
+
+func _find_plunger() -> Plunger:
+	for child in _table.get_children():
+		if child is Plunger:
+			return child
+	return null
+
+func _find_left_flipper() -> Flipper:
+	for child in _table.get_children():
+		if child is Flipper and (child as Flipper).side == Flipper.Side.LEFT:
+			return child
+	return null
+
+func get_spawn_position() -> Vector3:
+	var marker := _table.get_node_or_null("BallSpawn")
+	if marker == null:
+		for child in _table.get_children():
+			if child is Marker3D:
+				marker = child
+				break
+	return (marker as Node3D).global_position if marker != null else FALLBACK_SPAWN
+
 # ------------------------------------------------------------------------
 # Ball lifecycle
 # ------------------------------------------------------------------------
@@ -91,13 +155,16 @@ func _on_ball_drained(_drained_ball: Node) -> void:
 	reset_ball()
 
 func reset_ball() -> void:
-	if is_instance_valid(_ball) and is_instance_valid(_ball_spawn):
-		_ball.reset_to(_ball_spawn.global_position)
+	if is_instance_valid(_ball):
+		_ball.reset_to(get_spawn_position())
 
 # ------------------------------------------------------------------------
-# Debug / QA input
+# Debug / QA input (suppressed while Edit Mode owns input)
 # ------------------------------------------------------------------------
 func _input(event: InputEvent) -> void:
+	if _edit_mode != null and _edit_mode.is_active():
+		return
+
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_R:
