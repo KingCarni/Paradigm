@@ -10,6 +10,10 @@ extends AnimatableBody3D
 ## delta -> frame-rate independent, deterministic. Rest/pressed angles and speeds
 ## are read from [PinballTuning] every frame so live tuning takes effect instantly.
 ## Also measures flip time (input -> full travel) for the debug overlay.
+##
+## IMPORTANT: table placement yaw is kept separate from runtime bat animation.
+## Edit Mode temporarily exposes the authored placement transform and disables
+## sync_to_physics so the flipper can be moved/rotated like every other component.
 
 enum Side { LEFT, RIGHT }
 
@@ -29,6 +33,8 @@ enum Side { LEFT, RIGHT }
 var _rest_yaw: float = 0.0
 var _pressed_yaw: float = 0.0
 var _current_yaw: float = 0.0
+var _placement_yaw: float = 0.0
+var _editing_table: bool = false
 var _was_pressed: bool = false
 var _press_start_usec: int = 0
 var _measuring: bool = false
@@ -38,11 +44,17 @@ var last_flip_ms: float = 0.0
 func _ready() -> void:
 	if tuning == null:
 		tuning = load("res://data/pinball/table_tuning.tres")
-	sync_to_physics = true
 	_rebuild()
 	_recompute_angles()
+
+	# The transform authored in the table scene / table definition represents
+	# placement orientation. Runtime flipper motion is applied on top of it.
+	_placement_yaw = rotation.y
 	_current_yaw = _rest_yaw
-	rotation.y = _current_yaw
+
+	if not Engine.is_editor_hint():
+		sync_to_physics = true
+		_apply_runtime_rotation()
 
 func _recompute_angles() -> void:
 	var droop := deg_to_rad(rest_droop_degrees)
@@ -53,6 +65,32 @@ func _recompute_angles() -> void:
 	else:
 		_rest_yaw = PI + droop
 		_pressed_yaw = _rest_yaw - travel
+
+func _apply_runtime_rotation() -> void:
+	rotation.y = _placement_yaw + _current_yaw
+
+## Called by Developer Edit Mode before the SceneTree is paused.
+## Convert the live animated transform back to the authored placement transform
+## and release physics synchronization so direct transform edits are respected.
+func begin_table_edit() -> void:
+	if _editing_table:
+		return
+	_editing_table = true
+	# Recover placement from the current live rotation in case this is called
+	# after the flipper has already moved during gameplay.
+	_placement_yaw = rotation.y - _current_yaw
+	sync_to_physics = false
+	rotation.y = _placement_yaw
+
+## Called by Developer Edit Mode before gameplay resumes.
+## Capture the edited placement yaw, then restore normal animated physics motion.
+func end_table_edit() -> void:
+	if not _editing_table:
+		return
+	_placement_yaw = rotation.y
+	_editing_table = false
+	sync_to_physics = true
+	_apply_runtime_rotation()
 
 func _rebuild() -> void:
 	if not is_inside_tree():
@@ -85,7 +123,7 @@ func _rebuild() -> void:
 	add_child(mesh)
 
 func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint():
+	if Engine.is_editor_hint() or _editing_table:
 		return
 	_recompute_angles()  # live-tunable travel/droop
 	var pressed := Input.is_action_pressed(action_name)
@@ -98,7 +136,7 @@ func _physics_process(delta: float) -> void:
 	var target := _pressed_yaw if pressed else _rest_yaw
 	var speed_deg := tuning.flipper_press_speed if pressed else tuning.flipper_return_speed
 	_current_yaw = move_toward(_current_yaw, target, deg_to_rad(speed_deg) * delta)
-	rotation.y = _current_yaw
+	_apply_runtime_rotation()
 
 	if _measuring and pressed and absf(_current_yaw - _pressed_yaw) < 0.001:
 		last_flip_ms = float(Time.get_ticks_usec() - _press_start_usec) / 1000.0
