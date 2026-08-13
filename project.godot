@@ -4,7 +4,10 @@ config_version=5
 
 [application]
 config/name="Paradigm"
-run/main_scene="res://scenes/bootstrap/main.tscn"
+run/main_scene="res://scenes/pinball/physics_spike.tscn"
+
+[autoload]
+GameEvents="*res://scripts/core/game_events.gd"
 
 [display]
 window/size/viewport_width=1920
