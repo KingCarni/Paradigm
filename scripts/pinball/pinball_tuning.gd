@@ -15,28 +15,33 @@ extends Resource
 
 # --- Ball ---------------------------------------------------------------
 @export_group("Ball")
-## Physical radius of the ball, in world units. Also drives ball mesh size.
+## Physical radius of the ball, in world units. NOTE: the greybox ball geometry
+## is now authored in ball.tscn; this stays as a reference for tooling (e.g. the
+## dead-state watchdog) and should be kept in sync with the authored mesh.
 @export var ball_radius: float = 0.4
-## Mass of the ball. Heavier balls resist bumper/slingshot impulses more.
+## Mass of the ball. Heavier balls resist bumper/slingshot impulses more. Does
+## NOT change gravitational acceleration (gravity is applied as accel, not force).
 @export var ball_mass: float = 1.0
 ## Bounciness of the ball against walls/components (0 = dead, 1 = perfectly elastic).
-@export_range(0.0, 1.0) var ball_restitution: float = 0.35
+@export_range(0.0, 1.0) var ball_restitution: float = 0.30
 ## Rolling/sliding friction of the ball surface.
 @export_range(0.0, 1.0) var ball_friction: float = 0.35
-## Linear damping applied to the ball. A small value bleeds off energy so the
-## ball eventually settles instead of gaining energy indefinitely.
-@export var ball_linear_damp: float = 0.15
+## Linear damping applied to the ball. Kept low to preserve momentum (a higher
+## value reads as sluggish/floaty rather than weighty).
+@export var ball_linear_damp: float = 0.12
 ## Angular damping applied to the ball's spin.
 @export var ball_angular_damp: float = 0.4
 
 # --- Playfield gravity / incline ---------------------------------------
 @export_group("Playfield")
 ## Gravity magnitude pulling the ball down the table, in units/s^2. Exaggerated
-## well beyond 9.8 for a snappy, weighty pinball feel.
-@export var gravity_strength: float = 32.0
+## well beyond 9.8 for a snappy, weighty pinball feel. The in-plane pull toward
+## the drain is gravity_strength * sin(incline) -- that product is what governs
+## "floaty vs weighty", so raise BOTH this and the incline to add weight.
+@export var gravity_strength: float = 46.0
 ## Simulated table incline, in degrees. Larger = faster drain, steeper slope.
 ## Converted into the in-plane (+Z) component of the gravity vector.
-@export_range(0.0, 30.0) var playfield_incline_degrees: float = 7.0
+@export_range(0.0, 30.0) var playfield_incline_degrees: float = 11.0
 
 # --- Flippers -----------------------------------------------------------
 @export_group("Flippers")
@@ -51,14 +56,15 @@ extends Resource
 # --- Impulse components -------------------------------------------------
 @export_group("Impulse Components")
 ## Outward impulse applied by a bumper when the ball enters its trigger.
-@export var bumper_impulse: float = 14.0
+@export var bumper_impulse: float = 18.0
 ## Impulse applied by a slingshot along its face normal.
-@export var slingshot_impulse: float = 16.0
+@export var slingshot_impulse: float = 20.0
 
 # --- Launcher / plunger -------------------------------------------------
 @export_group("Launcher")
-## Maximum launch impulse when the plunger is fully charged.
-@export var launcher_strength: float = 42.0
+## Maximum launch impulse when the plunger is fully charged. Scaled up alongside
+## the stronger gravity so a full plunge still reaches the top of the table.
+@export var launcher_strength: float = 62.0
 ## How fast the plunger charges toward full while the launch button is held,
 ## as a fraction (0..1) per second.
 @export var launcher_charge_rate: float = 1.5
