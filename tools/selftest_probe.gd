@@ -34,8 +34,10 @@ var _return_start := -1
 var _return_frames := -1
 var _io_ok := false
 var _build_ok := false
+var _start_ms := 0
 
 func _ready() -> void:
+	_start_ms = Time.get_ticks_msec()
 	_spike = get_parent() as Node3D
 	GameEvents.ball_drained.connect(_on_drained)
 	GameEvents.component_hit.connect(_on_hit)
@@ -57,10 +59,21 @@ func _on_completed(_c: Node, ctx: Dictionary) -> void:
 
 func _physics_process(_delta: float) -> void:
 	_frames += 1
+	# Hard stop FIRST so the probe always terminates, even if the scene never
+	# produced a Ball. (Previously the early return below skipped this check and
+	# could run forever.) Also cap wall-clock time as a belt-and-braces guard.
+	if _frames >= 2100 or (Time.get_ticks_msec() - _start_ms) > 60000:
+		_report()
+		get_tree().quit()
+		return
 	if _ball == null:
 		_ball = _spike.get_node_or_null("Ball")
 		_ramp = _spike.get_node_or_null("Table/Ramp01")
 		_left_flipper = _spike.get_node_or_null("Table/LeftFlipper")
+		if _ball == null and _frames > 240:
+			push_error("[selftest] no 'Ball' node under PhysicsSpike — aborting")
+			_report()
+			get_tree().quit()
 		return
 
 	# Table-definition round-trip (serialize -> JSON -> parse -> build).
@@ -125,10 +138,7 @@ func _physics_process(_delta: float) -> void:
 	if _frames % 150 == 0:
 		print("f%4d  pos=(%5.1f,%4.1f,%5.1f)  speed=%5.1f  b=%d s=%d r=%d d=%d"
 			% [_frames, pos.x, pos.y, pos.z, speed, _bumpers, _slings, _ramps, _drains])
-
-	if _frames >= 2100:
-		_report()
-		get_tree().quit()
+	# Termination is handled by the hard stop at the top of _physics_process.
 
 func _run_table_io_test() -> void:
 	var table := _spike.get_node_or_null("Table")

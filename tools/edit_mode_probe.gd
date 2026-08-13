@@ -19,10 +19,17 @@ func _ready() -> void:
 
 func _physics_process(_delta: float) -> void:
 	_frames += 1
+	if _frames > 600:
+		push_error("[edittest] timed out before completing — aborting")
+		get_tree().quit()
+		return
 	if _edit == null:
 		_spike = get_parent()
 		_table = _spike.get_node_or_null("Table")
 		_edit = _spike.get_node_or_null("Debug/EditMode")
+		if _edit == null and _frames > 240:
+			push_error("[edittest] EditMode node not found — aborting")
+			get_tree().quit()
 		return
 
 	match _frames:
