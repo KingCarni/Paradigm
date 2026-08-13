@@ -1,0 +1,29 @@
+# Godot 4+
+.godot/
+
+# Mono/.NET (unused, kept defensive)
+.mono/
+data_*/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Builds / exports
+builds/
+exports/
+*.pck
+*.zip
+
+# Local/debug
+*.log
+*.tmp
+.env
+.env.*
+!.env.example
