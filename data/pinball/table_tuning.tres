@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="PinballTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/pinball/pinball_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+ball_radius = 0.4
+ball_mass = 1.0
+ball_restitution = 0.35
+ball_friction = 0.35
+ball_linear_damp = 0.15
+ball_angular_damp = 0.4
+gravity_strength = 32.0
+playfield_incline_degrees = 7.0
+flipper_travel_degrees = 42.0
+flipper_press_speed = 1600.0
+flipper_return_speed = 700.0
+bumper_impulse = 14.0
+slingshot_impulse = 16.0
+launcher_strength = 42.0
+launcher_charge_rate = 1.5
+max_ball_velocity = 90.0
+nudge_impulse = 3.5
