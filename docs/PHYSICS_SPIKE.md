@@ -126,3 +126,35 @@ The headless self-test now runs against the scene-authored table and asserts:
 boot, spawn, launch, flipper actuation, traversal, bumpers, slingshots, ramp
 completion, drain/respawn, in-bounds (no escapes / fall-through), speed under the
 clamp, and a return-time (floaty) measurement. `godot --headless -- selftest`.
+
+## Pass 3 updates (Developer Edit Mode + table definitions)
+
+### Table container
+All editable components now live under a single `Table` node in
+`physics_spike.tscn` (node name = stable component ID). `Ball` stays a runtime
+root child. The authored `Table` is still the editor-visible default; it can also
+be built from data (below).
+
+### Table-definition format (data-driven layouts)
+Layouts can be described as human-readable JSON — see `docs/TABLE_DEFINITION.md`.
+`TableRegistry` (type ↔ scene ↔ props), `TableDefinition` (data + JSON I/O) and
+`TableLoader` (build/serialize) form the layer; reusable component scenes remain
+the runtime implementation. The sample `data/pinball/tables/default_table.json`
+mirrors the spike and can be booted with `-- loadtable` or regenerated from the
+authored scene with `-- exporttable`.
+
+### Developer Edit Mode v0 (debug only)
+Press **F2** to enter/exit Edit Mode. Entering pauses the tree (ball physics
+suspended); exiting resets the ball and resumes. Controls: **Tab** cycle
+selection, **arrows** move X/Z, **PgUp/PgDn** move Y, **, .** rotate yaw, **- =**
+scale, **Del** delete, **Ins** duplicate, **1..7** add from palette, **Ctrl+S/L**
+save/load dev layout, **Ctrl+D** load default. The selected component is
+highlighted; gameplay input is suppressed while editing. This is the tool for the
+Manual Test #2 findings (bumper loop spacing, outlane geometry, ramp shot
+reachability) — reposition/retune experimentally, then Play-test immediately.
+
+### Validation (Pass 3)
+`selftest` now also round-trips the table definition (serialize → JSON → parse →
+build) and asserts it rebuilds cleanly. A separate `-- edittest` headless probe
+drives Edit Mode via synthetic input and checks enter/pause, add, duplicate, move,
+delete, save, load and exit/unpause.

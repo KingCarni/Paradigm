@@ -14,15 +14,20 @@ Hierarchy:
 
 ```
 PhysicsSpike (physics_spike.gd — lifecycle only, builds no geometry)
-├── Environment        Camera, Sun, WorldEnvironment
-├── Playfield          Floor, Walls/*, LaunchLane/{LaneDivider,LaneDeflector}, Drain
-├── Components         Flippers/{Left,Right}, Slingshots/{Left,Right},
-│                      Bumpers/{01,02,03}, Ramp01
-├── BallSpawn          Marker3D — respawn point (authored, not a constant)
-├── Ball               the active ball
-├── Plunger            hold-to-charge launcher
-└── Debug              runtime mount for overlay / live tuning panel / watchdog
+├── Environment   Camera, Sun, WorldEnvironment
+├── Table         ALL editable components (flat; node name = stable component ID):
+│                 Floor, WallLeft/Right/Top/Bottom, LaneDivider, LaneDeflector,
+│                 Drain, LeftFlipper, RightFlipper, LeftSlingshot, RightSlingshot,
+│                 Bumper01/02/03, Ramp01, BallSpawn (Marker3D), Plunger
+├── Ball          the active ball (runtime object, not part of the table definition)
+└── Debug         runtime mount for overlay / tuning panel / watchdog / Edit Mode
 ```
+
+The authored `Table` is the editor-visible default and can equally be built from a
+JSON **table definition** (see `docs/TABLE_DEFINITION.md`): `TableRegistry`,
+`TableDefinition` and `TableLoader` translate between layout data and component
+scenes. **Developer Edit Mode** (F2) edits the live `Table` and saves/loads these
+definitions. Reusable component scenes remain the runtime implementation.
 
 ## Reusable `@tool` components
 
