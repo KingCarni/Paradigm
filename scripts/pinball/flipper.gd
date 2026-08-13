@@ -12,8 +12,8 @@ extends AnimatableBody3D
 ## Also measures flip time (input -> full travel) for the debug overlay.
 ##
 ## IMPORTANT: table placement yaw is kept separate from runtime bat animation.
-## Edit Mode temporarily exposes the authored placement transform and disables
-## sync_to_physics so the flipper can be moved/rotated like every other component.
+## While Developer Edit Mode is active, the flipper releases sync_to_physics and
+## exposes its authored placement transform so it can be moved/rotated normally.
 
 enum Side { LEFT, RIGHT }
 
@@ -53,6 +53,8 @@ func _ready() -> void:
 	_current_yaw = _rest_yaw
 
 	if not Engine.is_editor_hint():
+		# Keep checking Edit Mode even while the SceneTree itself is paused.
+		process_mode = Node.PROCESS_MODE_ALWAYS
 		sync_to_physics = true
 		_apply_runtime_rotation()
 
@@ -69,20 +71,24 @@ func _recompute_angles() -> void:
 func _apply_runtime_rotation() -> void:
 	rotation.y = _placement_yaw + _current_yaw
 
-## Called by Developer Edit Mode before the SceneTree is paused.
+func _edit_mode_is_active() -> bool:
+	if get_tree() == null or get_tree().current_scene == null:
+		return false
+	var edit := get_tree().current_scene.find_child("EditMode", true, false)
+	if edit == null or not edit.has_method("is_active"):
+		return false
+	return bool(edit.call("is_active"))
+
 ## Convert the live animated transform back to the authored placement transform
 ## and release physics synchronization so direct transform edits are respected.
 func begin_table_edit() -> void:
 	if _editing_table:
 		return
 	_editing_table = true
-	# Recover placement from the current live rotation in case this is called
-	# after the flipper has already moved during gameplay.
 	_placement_yaw = rotation.y - _current_yaw
 	sync_to_physics = false
 	rotation.y = _placement_yaw
 
-## Called by Developer Edit Mode before gameplay resumes.
 ## Capture the edited placement yaw, then restore normal animated physics motion.
 func end_table_edit() -> void:
 	if not _editing_table:
@@ -123,8 +129,19 @@ func _rebuild() -> void:
 	add_child(mesh)
 
 func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint() or _editing_table:
+	if Engine.is_editor_hint():
 		return
+
+	# EditMode pauses the SceneTree. Because this node processes ALWAYS, it can
+	# still release/restore AnimatableBody3D physics sync at the right moment.
+	var edit_active := _edit_mode_is_active()
+	if edit_active:
+		if not _editing_table:
+			begin_table_edit()
+		return
+	elif _editing_table:
+		end_table_edit()
+
 	_recompute_angles()  # live-tunable travel/droop
 	var pressed := Input.is_action_pressed(action_name)
 
