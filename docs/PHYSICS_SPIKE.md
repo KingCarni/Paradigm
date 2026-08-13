@@ -71,5 +71,58 @@ saves to `user://spike_capture.png`.
 
 ### Not implemented in this pass (deferred, out of spike scope)
 Drop/stand-up targets, multiball, tilt/ball-save, scoring, and any run/combat/
-upgrade hooks. Ball respawn currently uses a layout constant rather than a data
-resource. See the PAR-14/15/16 Jira comments for the full done/pending breakdown.
+upgrade hooks. See the PAR-14/15/16 Jira comments for the full done/pending breakdown.
+
+## Pass 2 updates (scene-based authoring)
+
+### Table authoring — the table is a scene, not a script
+Per the AGENTS.md / ARCHITECTURE.md HARD RULE, `physics_spike.gd` no longer builds
+the table. The table is authored in `scenes/pinball/physics_spike.tscn` with the
+hierarchy `Environment / Playfield / Components / BallSpawn / Ball / Plunger /
+Debug`. Every wall, flipper, slingshot, bumper, the ramp, the drain and the
+plunger is a **scene instance placed by an editable transform** — moving one is an
+editor operation, never a code edit.
+
+- Reusable components (`ball`, `flipper`, `bumper`, `slingshot`, `ramp`, `drain`,
+  `plunger`) and a parametric `wall` component are **`@tool`** scenes: they build
+  their greybox mesh + collision from exported params so the geometry is **visible
+  and editable in the Godot editor** (generated children are unsaved; runtime
+  callbacks are guarded with `Engine.is_editor_hint()`).
+- `physics_spike.gd` is now a thin lifecycle coordinator: it keeps the ball in
+  play (respawn on drain via the authored `BallSpawn` marker), sets up the
+  cosmetic environment, mounts the debug tools and routes hotkeys. It builds no
+  geometry and places no component. It remains a disposable prototype harness.
+
+### Ramp / dead-zone fix (geometric)
+Manual Test #1 trapped the ball behind/beside the old ramp. The ramp was redesigned
+smaller (≈1.5 × 6, rise ≈1.85) and **flush against the left wall**, fully enclosed
+by its own vertical side walls plus a high-end underside cap, so there is no pocket
+beside, behind or under it. The low end's slab meets the floor. Fixed by geometry,
+**not** by teleporting the ball out of the trap.
+
+### Ball feel baseline (less floaty)
+Root cause of "floaty" was a weak in-plane pull: `gravity·sin(incline)`. Raising
+incline 7→11° and gravity 32→46 roughly doubles it (≈3.9 → ≈8.8 u/s²) for a
+weightier, faster return; damping kept low to preserve momentum; launcher/bumper/
+slingshot nudged up to stay proportionate. This is a **starting baseline** — the
+live tuning panel is the intended way to dial in real feel.
+
+### Live tuning panel (debug only)
+`F4` opens a keyboard-driven panel (Up/Down select, Left/Right adjust, Shift =
+coarse). Gravity, incline, restitution, friction, damping, ball mass, flipper
+press/return/travel, bumper/slingshot/launcher impulse and max velocity all update
+the shared tuning resource live. `Home` resets to the authored baseline; `End`
+prints a paste-ready `[resource]` block and writes `user://tuning_export.tres`.
+
+### Dead-state watchdog (report, never hide)
+A watchdog reports (console + overlay banner) when the ball goes out of bounds,
+under the playfield, or sits stationary >3 s outside the launch lane, logging
+position, velocity, stationary time and last component interaction. It never
+teleports the ball; manual reset (`R`) stays available and the tester is told a bad
+state occurred.
+
+### Validation (Pass 2)
+The headless self-test now runs against the scene-authored table and asserts:
+boot, spawn, launch, flipper actuation, traversal, bumpers, slingshots, ramp
+completion, drain/respawn, in-bounds (no escapes / fall-through), speed under the
+clamp, and a return-time (floaty) measurement. `godot --headless -- selftest`.
