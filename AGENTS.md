@@ -31,6 +31,17 @@ This repository is intended to be safe for work by Codex, Claude and human contr
 - Prefer Resources/data definitions for authored content.
 - Avoid hard-coded absolute paths, user-specific paths, secrets and machine-specific state.
 
+### Production table authoring — HARD RULE
+
+`physics_spike.gd` is disposable prototype infrastructure. Its programmatic table-layout approach MUST NOT become the production table-authoring system.
+
+- Production tables must be authored as editable Godot scenes/sub-scenes with visible transforms in the editor.
+- Physical components such as bumpers, ramps, lanes, drains, walls, flippers and upgrade sockets must be placeable/tunable through scene instances and exported data rather than hard-coded world-position constants in a monolithic builder script.
+- Reusable component behavior may remain scripted, but level/table composition belongs in scenes.
+- The physics spike may continue using code-built geometry only until the scene-based authoring foundation replaces it.
+- Do not add new production gameplay/content dependencies to `physics_spike.gd`.
+- Before production table/content work proceeds, migrate the useful spike components into a scene-authored table foundation and retain the spike only as a disposable QA/prototype harness if useful.
+
 ## Physics rules
 
 Pinball feel has priority over physical realism.
