@@ -1,8 +1,115 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/pinball/physics_spike.gd" id="1"]
 [ext_resource type="Resource" path="res://data/pinball/table_tuning.tres" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/wall.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/ball.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/flipper.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/slingshot.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/bumper.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/ramp.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/drain.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/pinball/plunger.tscn" id="10"]
 
 [node name="PhysicsSpike" type="Node3D"]
 script = ExtResource("1")
 tuning = ExtResource("2")
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="Camera" type="Camera3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 0.809992, 0.586511, 0, -0.586511, 0.809992, 0, 21, 27)
+fov = 52.0
+
+[node name="Sun" type="DirectionalLight3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 0.573576, 0.819152, 0, -0.819152, 0.573576, 0, 10, 0)
+light_energy = 1.1
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Environment"]
+
+[node name="Playfield" type="Node3D" parent="."]
+
+[node name="Floor" parent="Playfield" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+size = Vector3(14, 1, 30)
+wall_color = Color(0.16, 0.18, 0.22, 1)
+friction = 0.4
+bounce = 0.1
+
+[node name="Walls" type="Node3D" parent="Playfield"]
+
+[node name="WallLeft" parent="Playfield/Walls" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 1, 0)
+size = Vector3(0.5, 2, 30)
+
+[node name="WallRight" parent="Playfield/Walls" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 1, 0)
+size = Vector3(0.5, 2, 30)
+
+[node name="WallTop" parent="Playfield/Walls" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -15)
+size = Vector3(14, 2, 0.5)
+
+[node name="WallBottom" parent="Playfield/Walls" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 15)
+size = Vector3(14, 2, 0.5)
+
+[node name="LaunchLane" type="Node3D" parent="Playfield"]
+
+[node name="LaneDivider" parent="Playfield/LaunchLane" instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 3)
+size = Vector3(0.3, 2, 22)
+
+[node name="LaneDeflector" parent="Playfield/LaunchLane" instance=ExtResource("3")]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, 5.3, 1, -11)
+size = Vector3(3.6, 2, 0.4)
+
+[node name="Drain" parent="Playfield" instance=ExtResource("9")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 13.6)
+
+[node name="Components" type="Node3D" parent="."]
+
+[node name="Flippers" type="Node3D" parent="Components"]
+
+[node name="LeftFlipper" parent="Components/Flippers" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4, 0.4, 11)
+side = 0
+action_name = &"flipper_left"
+
+[node name="RightFlipper" parent="Components/Flippers" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0.4, 11)
+side = 1
+action_name = &"flipper_right"
+
+[node name="Slingshots" type="Node3D" parent="Components"]
+
+[node name="LeftSlingshot" parent="Components/Slingshots" instance=ExtResource("6")]
+transform = Transform3D(-0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, -0.866025, -3.5, 0.4, 8)
+
+[node name="RightSlingshot" parent="Components/Slingshots" instance=ExtResource("6")]
+transform = Transform3D(-0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, -0.866025, 3.5, 0.4, 8)
+
+[node name="Bumpers" type="Node3D" parent="Components"]
+
+[node name="Bumper01" parent="Components/Bumpers" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0.8, -5)
+
+[node name="Bumper02" parent="Components/Bumpers" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.8, -5)
+
+[node name="Bumper03" parent="Components/Bumpers" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, -8)
+
+[node name="Ramp01" parent="Components" instance=ExtResource("8")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -6, 0, 3)
+
+[node name="BallSpawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.95, 0.4, 13)
+
+[node name="Ball" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.95, 0.4, 13)
+
+[node name="Plunger" parent="." instance=ExtResource("10")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.95, 0.4, 13)
+
+[node name="Debug" type="Node3D" parent="."]

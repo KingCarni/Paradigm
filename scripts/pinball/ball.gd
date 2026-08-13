@@ -1,58 +1,73 @@
+@tool
 class_name PinballBall
 extends RigidBody3D
 
 ## The physical pinball.
 ##
-## Builds its own greybox sphere geometry and collision from [PinballTuning] so
-## the .tscn stays trivial. Applies a custom gravity vector (see PinballTuning)
-## in _integrate_forces rather than relying on default gravity, which lets the
-## flat playfield behave like an inclined table while keeping one authoritative
-## gravity source. Also enforces the documented max-velocity anti-tunnelling clamp.
+## @tool so its greybox sphere is visible in the editor. Geometry is built
+## parametrically from [member radius]; physics feel (mass, damping, restitution,
+## friction) is applied from [PinballTuning] and can be re-applied live while
+## tuning. Gravity is integrated manually (see PinballTuning.gravity_vector) so the
+## flat playfield behaves like an inclined table, plus the documented
+## anti-tunnelling velocity clamp.
 
 @export var tuning: PinballTuning
+@export var radius: float = 0.4:
+	set(value):
+		radius = value
+		_rebuild()
 
 var _reset_pending: bool = false
 var _reset_position: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
+	_rebuild()
+	if Engine.is_editor_hint():
+		return
 	if tuning == null:
 		tuning = load("res://data/pinball/table_tuning.tres")
-
-	# We integrate gravity ourselves for full control / single tuning source.
 	gravity_scale = 0.0
+	continuous_cd = true
+	# The active ball must never sleep: a sleeping RigidBody3D ignores plunger /
+	# bumper / slingshot impulses and can miss collisions ("dead ball").
+	can_sleep = false
+	contact_monitor = false
+	apply_physics_from_tuning()
+
+## (Re)apply mass / damping / restitution / friction from the tuning resource.
+## Called on spawn and by the live tuning panel so changes take effect immediately.
+func apply_physics_from_tuning() -> void:
+	if tuning == null:
+		return
 	mass = tuning.ball_mass
 	linear_damp = tuning.ball_linear_damp
 	angular_damp = tuning.ball_angular_damp
-	# Continuous collision detection is essential for high-speed reliability at
-	# 120 Hz (see docs/PHYSICS_SPIKE.md pass criteria on tunnelling).
-	continuous_cd = true
-	# The active ball must never sleep: a sleeping RigidBody3D ignores plunger /
-	# bumper / slingshot impulses (they don't reliably wake it) and can miss
-	# collisions, producing a "dead ball". This surfaced in the headless self-test.
-	can_sleep = false
-	contact_monitor = false
-
 	var phys_mat := PhysicsMaterial.new()
 	phys_mat.friction = tuning.ball_friction
 	phys_mat.bounce = tuning.ball_restitution
 	physics_material_override = phys_mat
 
-	_build_geometry()
+func _rebuild() -> void:
+	if not is_inside_tree():
+		return
+	for child in get_children():
+		if child.has_meta("greybox_generated"):
+			remove_child(child)
+			child.queue_free()
 
-func _build_geometry() -> void:
 	var shape := SphereShape3D.new()
-	shape.radius = tuning.ball_radius
+	shape.radius = radius
 	var col := CollisionShape3D.new()
 	col.shape = shape
-	col.name = "Collision"
+	col.set_meta("greybox_generated", true)
 	add_child(col)
 
 	var sphere := SphereMesh.new()
-	sphere.radius = tuning.ball_radius
-	sphere.height = tuning.ball_radius * 2.0
+	sphere.radius = radius
+	sphere.height = radius * 2.0
 	var mesh := MeshInstance3D.new()
 	mesh.mesh = sphere
-	mesh.name = "Mesh"
+	mesh.set_meta("greybox_generated", true)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.9, 0.85, 0.9)
 	mat.metallic = 0.7

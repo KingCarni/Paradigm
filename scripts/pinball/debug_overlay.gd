@@ -1,18 +1,21 @@
 class_name DebugOverlay
 extends CanvasLayer
 
-## Lightweight tuning/QA overlay for the physics spike.
+## Lightweight tuning/QA overlay for the physics spike (display-only).
 ##
-## Display-only: shows live ball state, plunger charge, event counters and the
-## current tuning values so they can be observed while tuning. Hotkeys for
-## reset/restart/toggle are owned by the table (PhysicsSpike), which calls
-## set_active() here. Nothing gameplay-authoritative lives in the overlay.
+## Shows live ball state, plunger charge, flip time (input->full travel, a
+## measurable input-latency proxy for PAR-14), event counters, the current tuning
+## values, and any dead-state banner raised by the BallWatchdog. Hotkeys are owned
+## by PhysicsSpike / TuningPanel.
 
 @export var tuning: PinballTuning
 
 var _label: Label
 var ball: PinballBall
 var plunger: Plunger
+var left_flipper: Flipper
+
+var _alert: String = ""
 
 var _bumper_hits: int = 0
 var _slingshot_hits: int = 0
@@ -36,6 +39,9 @@ func _ready() -> void:
 
 func set_active(active: bool) -> void:
 	visible = active
+
+func set_alert(text: String) -> void:
+	_alert = text
 
 func _on_component_hit(_component: Node3D, _ball: Node3D, context: Dictionary) -> void:
 	match context.get("type", ""):
@@ -64,25 +70,31 @@ func _process(_delta: float) -> void:
 	var charge := 0.0
 	if is_instance_valid(plunger):
 		charge = plunger.get_charge()
+	var flip_ms := 0.0
+	if is_instance_valid(left_flipper):
+		flip_ms = left_flipper.last_flip_ms
 
 	var lines := PackedStringArray()
-	lines.append("PARADIGM - PHYSICS SPIKE (greybox)")
+	lines.append("PARADIGM - PHYSICS SPIKE (greybox, scene-authored)")
 	lines.append("FPS %d | physics %d Hz" % [Engine.get_frames_per_second(), Engine.physics_ticks_per_second])
+	if _alert != "":
+		lines.append("")
+		lines.append(">>> " + _alert)
 	lines.append("")
 	lines.append("BALL  speed %5.1f u/s  (max %.0f)" % [speed, tuning.max_ball_velocity])
 	lines.append("      pos (%5.1f, %4.1f, %5.1f)" % [pos.x, pos.y, pos.z])
-	lines.append("PLUNGER charge %3.0f%%" % [charge * 100.0])
+	lines.append("PLUNGER charge %3.0f%%   FLIP time %.1f ms" % [charge * 100.0, flip_ms])
 	lines.append("")
 	lines.append("EVENTS  bumpers %d  slings %d  ramp %d  launches %d  drains %d"
 		% [_bumper_hits, _slingshot_hits, _ramp_completions, _launches, _drains])
 	lines.append("")
-	lines.append("TUNING  gravity %.0f  incline %.0f deg  maxV %.0f"
-		% [tuning.gravity_strength, tuning.playfield_incline_degrees, tuning.max_ball_velocity])
+	lines.append("TUNING  gravity %.0f  incline %.1f deg  in-plane %.1f u/s^2  maxV %.0f"
+		% [tuning.gravity_strength, tuning.playfield_incline_degrees, tuning.gravity_vector().z, tuning.max_ball_velocity])
 	lines.append("        flipper travel %.0f  press %.0f  return %.0f"
 		% [tuning.flipper_travel_degrees, tuning.flipper_press_speed, tuning.flipper_return_speed])
 	lines.append("        bumper %.0f  sling %.0f  launcher %.0f"
 		% [tuning.bumper_impulse, tuning.slingshot_impulse, tuning.launcher_strength])
 	lines.append("")
 	lines.append("CONTROLS  A/D or LB/RB flippers | Space/A hold+release launch")
-	lines.append("          Q/E nudge | R reset ball | F5 restart | F3 overlay | Esc pause")
+	lines.append("          Q/E nudge | R reset | F5 restart | F3 overlay | F4 live tuning | Esc pause")
 	_label.text = "\n".join(lines)
