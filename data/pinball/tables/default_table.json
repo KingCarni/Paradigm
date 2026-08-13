@@ -1,0 +1,516 @@
+{
+  "components": [
+    {
+      "id": "Floor",
+      "position": [
+        0.0,
+        -0.5,
+        0.0
+      ],
+      "properties": {
+        "bounce": 0.1,
+        "friction": 0.4,
+        "size": [
+          14.0,
+          1.0,
+          30.0
+        ],
+        "wall_color": [
+          0.159999996423721,
+          0.180000007152557,
+          0.219999998807907,
+          1.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "wall"
+    },
+    {
+      "id": "WallLeft",
+      "position": [
+        -7.0,
+        1.0,
+        0.0
+      ],
+      "properties": {
+        "bounce": 0.3,
+        "friction": 0.1,
+        "size": [
+          0.5,
+          2.0,
+          30.0
+        ],
+        "wall_color": [
+          0.300000011920929,
+          0.319999992847443,
+          0.379999995231628,
+          1.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "wall"
+    },
+    {
+      "id": "WallRight",
+      "position": [
+        7.0,
+        1.0,
+        0.0
+      ],
+      "properties": {
+        "bounce": 0.3,
+        "friction": 0.1,
+        "size": [
+          0.5,
+          2.0,
+          30.0
+        ],
+        "wall_color": [
+          0.300000011920929,
+          0.319999992847443,
+          0.379999995231628,
+          1.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "wall"
+    },
+    {
+      "id": "WallTop",
+      "position": [
+        0.0,
+        1.0,
+        -15.0
+      ],
+      "properties": {
+        "bounce": 0.3,
+        "friction": 0.1,
+        "size": [
+          14.0,
+          2.0,
+          0.5
+        ],
+        "wall_color": [
+          0.300000011920929,
+          0.319999992847443,
+          0.379999995231628,
+          1.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "wall"
+    },
+    {
+      "id": "WallBottom",
+      "position": [
+        0.0,
+        1.0,
+        15.0
+      ],
+      "properties": {
+        "bounce": 0.3,
+        "friction": 0.1,
+        "size": [
+          14.0,
+          2.0,
+          0.5
+        ],
+        "wall_color": [
+          0.300000011920929,
+          0.319999992847443,
+          0.379999995231628,
+          1.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "wall"
+    },
+    {
+      "id": "LaneDivider",
+      "position": [
+        5.0,
+        1.0,
+        3.0
+      ],
+      "properties": {
+        "bounce": 0.3,
+        "friction": 0.1,
+        "size": [
+          0.300000011920929,
+          2.0,
+          22.0
+        ],
+        "wall_color": [
+          0.300000011920929,
+          0.319999992847443,
+          0.379999995231628,
+          1.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "wall"
+    },
+    {
+      "id": "LaneDeflector",
+      "position": [
+        5.30000019073486,
+        1.0,
+        -11.0
+      ],
+      "properties": {
+        "bounce": 0.3,
+        "friction": 0.1,
+        "size": [
+          3.59999990463257,
+          2.0,
+          0.400000005960464
+        ],
+        "wall_color": [
+          0.300000011920929,
+          0.319999992847443,
+          0.379999995231628,
+          1.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        -45.0,
+        0.0
+      ],
+      "scale": [
+        1.00000023841858,
+        1.0,
+        1.00000023841858
+      ],
+      "type": "wall"
+    },
+    {
+      "id": "Drain",
+      "position": [
+        0.0,
+        0.400000005960464,
+        13.6000003814697
+      ],
+      "properties": {
+        "size": [
+          6.0,
+          2.0,
+          1.5
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "drain"
+    },
+    {
+      "id": "LeftFlipper",
+      "position": [
+        -2.40000009536743,
+        0.400000005960464,
+        11.0
+      ],
+      "properties": {
+        "action_name": "flipper_left",
+        "bat_length": 3.2,
+        "rest_droop_degrees": 22.0,
+        "side": 0
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "flipper"
+    },
+    {
+      "id": "RightFlipper",
+      "position": [
+        2.40000009536743,
+        0.400000005960464,
+        11.0
+      ],
+      "properties": {
+        "action_name": "flipper_right",
+        "bat_length": 3.2,
+        "rest_droop_degrees": 22.0,
+        "side": 1
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "flipper"
+    },
+    {
+      "id": "LeftSlingshot",
+      "position": [
+        -3.5,
+        0.400000005960464,
+        8.0
+      ],
+      "properties": {
+        "height": 1.6,
+        "length": 2.2,
+        "thickness": 0.4
+      },
+      "rotation_deg": [
+        0.0,
+        149.999984741211,
+        0.0
+      ],
+      "scale": [
+        0.999999582767487,
+        1.0,
+        0.999999582767487
+      ],
+      "type": "slingshot"
+    },
+    {
+      "id": "RightSlingshot",
+      "position": [
+        3.5,
+        0.400000005960464,
+        8.0
+      ],
+      "properties": {
+        "height": 1.6,
+        "length": 2.2,
+        "thickness": 0.4
+      },
+      "rotation_deg": [
+        0.0,
+        -149.999984741211,
+        0.0
+      ],
+      "scale": [
+        0.999999582767487,
+        1.0,
+        0.999999582767487
+      ],
+      "type": "slingshot"
+    },
+    {
+      "id": "Bumper01",
+      "position": [
+        -2.5,
+        0.800000011920929,
+        -5.0
+      ],
+      "properties": {
+        "height": 1.6,
+        "radius": 1.0
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "bumper"
+    },
+    {
+      "id": "Bumper02",
+      "position": [
+        2.5,
+        0.800000011920929,
+        -5.0
+      ],
+      "properties": {
+        "height": 1.6,
+        "radius": 1.0
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "bumper"
+    },
+    {
+      "id": "Bumper03",
+      "position": [
+        0.0,
+        0.800000011920929,
+        -8.0
+      ],
+      "properties": {
+        "height": 1.6,
+        "radius": 1.0
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "bumper"
+    },
+    {
+      "id": "Ramp01",
+      "position": [
+        -6.0,
+        0.0,
+        3.0
+      ],
+      "properties": {
+        "ramp_length": 6.0,
+        "ramp_pitch_degrees": 18.0,
+        "ramp_thickness": 0.35,
+        "ramp_width": 1.5,
+        "side_wall_height": 2.2
+      },
+      "rotation_deg": [
+        0.0,
+        180.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "ramp"
+    },
+    {
+      "id": "BallSpawn",
+      "position": [
+        5.94999980926514,
+        0.400000005960464,
+        13.0
+      ],
+      "properties": {
+
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "ball_spawn"
+    },
+    {
+      "id": "Plunger",
+      "position": [
+        5.94999980926514,
+        0.400000005960464,
+        13.0
+      ],
+      "properties": {
+        "min_charge": 0.15,
+        "trigger_size": [
+          1.39999997615814,
+          1.5,
+          4.0
+        ]
+      },
+      "rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "plunger"
+    }
+  ],
+  "id": "physics_spike_default",
+  "name": "Physics Spike (default)",
+  "schema_version": 1,
+  "settings": {
+    "tuning": "res://data/pinball/table_tuning.tres"
+  }
+}
