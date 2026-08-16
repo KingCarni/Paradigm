@@ -59,8 +59,8 @@ runtime implementation — a table definition only describes *which* components 
 | `type` | Scene | `properties` keys |
 |---|---|---|
 | `wall` | `wall.tscn` | `size`, `wall_color`, `friction`, `bounce` |
-| `bumper` | `bumper.tscn` | `radius`, `height` |
-| `slingshot` | `slingshot.tscn` | `length`, `thickness`, `height` |
+| `bumper` | `bumper.tscn` | `radius`, `height`, `impulse_override` (−1 = global tuning) |
+| `slingshot` | `slingshot.tscn` | `length`, `thickness`, `height`, `impulse_override` (−1 = global) |
 | `ramp` | `ramp.tscn` | `ramp_length`, `ramp_width`, `ramp_thickness`, `ramp_pitch_degrees`, `side_wall_height` |
 | `drain` | `drain.tscn` | `size` |
 | `plunger` | `plunger.tscn` | `trigger_size`, `min_charge` |

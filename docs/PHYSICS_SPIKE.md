@@ -143,7 +143,13 @@ the runtime implementation. The sample `data/pinball/tables/default_table.json`
 mirrors the spike and can be booted with `-- loadtable` or regenerated from the
 authored scene with `-- exporttable`.
 
-### Developer Edit Mode v0 (debug only)
+### Developer Table Editor (F2)
+The v0 keyboard Edit Mode has been replaced by the **Developer Table Editor v1** —
+a full editor shell (Asset Library / viewport / Inspector / toolbar) with
+click-select, drag manipulation, transform gizmos, snapping, undo/redo and a
+save/load workflow. See **docs/EDITOR.md**. Press **F2** to open it.
+
+### (Historical) Developer Edit Mode v0 (debug only)
 Press **F2** to enter/exit Edit Mode. Entering pauses the tree (ball physics
 suspended); exiting resets the ball and resumes. Controls: **Tab** cycle
 selection, **arrows** move X/Z, **PgUp/PgDn** move Y, **, .** rotate yaw, **- =**
