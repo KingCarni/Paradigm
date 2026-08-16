@@ -61,6 +61,10 @@ func _input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	if event.keycode == KEY_F4:
+		# Live Tuning and Edit Mode are mutually exclusive.
+		var ed := get_tree().get_first_node_in_group("table_editor")
+		if ed != null and ed.has_method("is_active") and bool(ed.call("is_active")):
+			return
 		visible = not visible
 		get_viewport().set_input_as_handled()
 		return

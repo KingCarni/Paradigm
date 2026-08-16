@@ -3,9 +3,9 @@ extends RefCounted
 
 ## Builds a playable table by instantiating reusable component scenes from a
 ## [TableDefinition] into a container node, and serializes a live container back
-## into a definition. It is deliberately NOT a god-object: it only translates
-## between layout data and component scene instances. Component behaviour lives in
-## the component scripts; scoring/combat/upgrades are none of its business.
+## into a definition. Deliberately NOT a god-object: it only translates between
+## layout data and component scene instances. The editor reuses spawn()/entry_for()
+## for add / duplicate / undo.
 
 ## Build [container]'s children from [def]. Clears existing children first.
 ## Returns {"built": int, "errors": Array[String]}.
@@ -23,25 +23,48 @@ static func build(def: TableDefinition, container: Node) -> Dictionary:
 		if not (entry is Dictionary):
 			result["errors"].append("component entry is not an object")
 			continue
-		var type := str(entry.get("type", ""))
-		if not TableRegistry.is_known(type):
-			var msg := "unknown component type '%s' (id=%s) — skipped" % [type, str(entry.get("id", "?"))]
+		var node := spawn(entry, container)
+		if node == null:
+			var msg := "unknown/invalid component '%s' (id=%s) — skipped" % [str(entry.get("type", "")), str(entry.get("id", "?"))]
 			push_warning("[TableLoader] " + msg)
 			result["errors"].append(msg)
 			continue
-		var node := TableRegistry.instantiate(type)
-		if node == null:
-			result["errors"].append("failed to instantiate type '%s'" % type)
-			continue
-		node.name = str(entry.get("id", type))
-		node.transform = _entry_transform(entry)
-		node.set_meta("component_id", node.name)
-		container.add_child(node)
-		# Apply component-specific properties after _ready so setters rebuild geometry.
-		TableRegistry.apply_props(node, type, entry.get("properties", {}))
 		result["built"] += 1
 
 	return result
+
+## Instantiate a single component entry into [container]. Returns the node or null
+## if the type is unknown. Applies transform + properties.
+static func spawn(entry: Dictionary, container: Node) -> Node3D:
+	var type := str(entry.get("type", ""))
+	if not TableRegistry.is_known(type):
+		return null
+	var node := TableRegistry.instantiate(type)
+	if node == null:
+		return null
+	node.name = str(entry.get("id", type))
+	node.transform = _entry_transform(entry)
+	node.set_meta("component_id", node.name)
+	container.add_child(node)
+	# Apply properties after _ready so setters rebuild geometry.
+	TableRegistry.apply_props(node, type, entry.get("properties", {}))
+	return node
+
+## Serialize a single live component node into an entry dictionary ({} if the node
+## is not an editable component).
+static func entry_for(node: Node) -> Dictionary:
+	var type := TableRegistry.type_of(node)
+	if type == "":
+		return {}
+	var n3 := node as Node3D
+	return {
+		"type": type,
+		"id": node.name,
+		"position": _v3_to_arr(n3.position),
+		"rotation_deg": _v3_to_arr(_degrees(n3.rotation)),
+		"scale": _v3_to_arr(n3.scale),
+		"properties": TableRegistry.read_props(node, type),
+	}
 
 ## Serialize [container]'s editable component children into a [TableDefinition].
 static func serialize(container: Node, id: String, table_name: String, settings: Dictionary) -> TableDefinition:
@@ -50,18 +73,9 @@ static func serialize(container: Node, id: String, table_name: String, settings:
 	def.name = table_name
 	def.settings = settings
 	for child in container.get_children():
-		var type := TableRegistry.type_of(child)
-		if type == "":
-			continue
-		var node3d := child as Node3D
-		def.components.append({
-			"type": type,
-			"id": child.name,
-			"position": _v3_to_arr(node3d.position),
-			"rotation_deg": _v3_to_arr(_degrees(node3d.rotation)),
-			"scale": _v3_to_arr(node3d.scale),
-			"properties": TableRegistry.read_props(child, type),
-		})
+		var entry := entry_for(child)
+		if not entry.is_empty():
+			def.components.append(entry)
 	return def
 
 static func _entry_transform(entry: Dictionary) -> Transform3D:

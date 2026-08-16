@@ -1,14 +1,13 @@
 class_name PhysicsSpike
 extends Node3D
 
-## Physics-spike lifecycle coordinator (DISPOSABLE prototype harness).
+## Physics-spike + table-editor host (DISPOSABLE prototype harness).
 ##
-## The table lives under the authored `Table` node (editable component instances)
-## and can equally be built from a JSON table definition (see TableLoader). This
-## script builds NO geometry and places NO component (AGENTS.md HARD RULE). It
-## keeps the ball in play (respawn at the authored BallSpawn marker), sets up the
-## cosmetic environment, mounts the debug tools (overlay, live tuning, watchdog,
-## Edit Mode) and routes hotkeys. Not a god controller.
+## The table lives under the authored `Table` node and can be built from a JSON
+## table definition (see TableLoader). This script builds NO geometry (AGENTS.md
+## HARD RULE). It keeps the ball in play, sets up the environment, and mounts the
+## dev tools: debug overlay, live tuning, watchdog, and the Developer Table Editor
+## v1 (controller + shell). Not a god controller.
 
 @export var tuning: PinballTuning
 
@@ -16,6 +15,7 @@ extends Node3D
 @onready var _ball: PinballBall = $Ball
 @onready var _debug_root: Node = $Debug
 @onready var _world_env: WorldEnvironment = $Environment/WorldEnvironment
+@onready var _camera: Camera3D = $Environment/Camera
 
 const DEFAULT_TABLE_PATH: String = "res://data/pinball/tables/default_table.json"
 const FALLBACK_SPAWN: Vector3 = Vector3(5.95, 0.4, 13.0)
@@ -23,7 +23,8 @@ const FALLBACK_SPAWN: Vector3 = Vector3(5.95, 0.4, 13.0)
 var _overlay: DebugOverlay
 var _panel: TuningPanel
 var _watchdog: BallWatchdog
-var _edit_mode: EditMode
+var _editor: TableEditor
+var _shell: Node
 var _baseline: PinballTuning
 var _screenshot_countdown: int = -1
 
@@ -35,7 +36,6 @@ func _ready() -> void:
 	_ensure_environment()
 	_baseline = tuning.duplicate()
 
-	# Dev hook: rebuild the table from the JSON definition to prove the load path.
 	if OS.get_cmdline_user_args().has("loadtable"):
 		_boot_from_definition()
 
@@ -45,20 +45,20 @@ func _ready() -> void:
 	reset_ball()
 	print("[PhysicsSpike] Ready. Table children: ", _table.get_child_count())
 
-	# Dev hook: export the authored table to the default JSON definition and quit.
 	if OS.get_cmdline_user_args().has("exporttable"):
 		_export_default_table()
 		return
 	if OS.get_cmdline_user_args().has("selftest"):
 		add_child(preload("res://tools/selftest_probe.gd").new())
-	if OS.get_cmdline_user_args().has("edittest"):
-		add_child(preload("res://tools/edit_mode_probe.gd").new())
+	if OS.get_cmdline_user_args().has("editortest"):
+		add_child(preload("res://tools/editor_probe.gd").new())
 	if OS.get_cmdline_user_args().has("screenshot"):
 		_screenshot_countdown = 20
-	if OS.get_cmdline_user_args().has("editshot"):
-		_edit_mode.toggle()
-		_edit_mode._select(_edit_mode._editables.find(_find_left_flipper()))
-		_screenshot_countdown = 20
+	if OS.get_cmdline_user_args().has("editor") or OS.get_cmdline_user_args().has("editorshot"):
+		_editor.set_editing(true)
+	if OS.get_cmdline_user_args().has("editorshot"):
+		_editor.select(_table.get_node_or_null("Bumper02"))
+		_screenshot_countdown = 30
 
 func _boot_from_definition() -> void:
 	var def := TableDefinition.load_from(DEFAULT_TABLE_PATH)
@@ -108,24 +108,33 @@ func _mount_debug_tools() -> void:
 	_panel.ball = _ball
 	_debug_root.add_child(_panel)
 
-	_edit_mode = preload("res://scripts/pinball/edit_mode.gd").new()
-	_edit_mode.name = "EditMode"
-	_edit_mode.table = _table
-	_edit_mode.spike = self
-	_debug_root.add_child(_edit_mode)
+	_editor = preload("res://scripts/editor/table_editor.gd").new()
+	_editor.name = "TableEditor"
+	_debug_root.add_child(_editor)
+	_editor.setup(_table, self, _camera)
+
+	_shell = preload("res://scripts/editor/editor_shell.gd").new()
+	_shell.name = "EditorShell"
+	_shell.editor = _editor
+	_debug_root.add_child(_shell)
 
 	_refresh_table_refs()
 
-## Re-point debug tools at the current table components (after an Edit Mode load).
+## Re-point debug tools at the current table components (after an editor load).
 func _refresh_table_refs() -> void:
 	_overlay.ball = _ball
 	_overlay.plunger = _find_plunger()
 	_overlay.left_flipper = _find_left_flipper()
 
-## Called by EditMode after it rebuilds the table from a definition.
 func on_table_rebuilt() -> void:
 	_refresh_table_refs()
 	reset_ball()
+
+func get_ball() -> PinballBall:
+	return _ball
+
+func get_editor() -> TableEditor:
+	return _editor
 
 func _find_plunger() -> Plunger:
 	for child in _table.get_children():
@@ -149,6 +158,28 @@ func get_spawn_position() -> Vector3:
 	return (marker as Node3D).global_position if marker != null else FALLBACK_SPAWN
 
 # ------------------------------------------------------------------------
+# Edit / Play transitions (called by the editor controller)
+# ------------------------------------------------------------------------
+func enter_edit_mode() -> void:
+	if is_instance_valid(_panel):
+		_panel.visible = false  # tuning + edit are mutually exclusive
+	if is_instance_valid(_overlay):
+		_overlay.visible = false  # keep the editor viewport clean
+	if is_instance_valid(_ball):
+		_ball.freeze = true
+		_ball.visible = false
+	get_tree().paused = true
+
+func enter_play_mode() -> void:
+	get_tree().paused = false
+	if is_instance_valid(_overlay):
+		_overlay.visible = true
+	if is_instance_valid(_ball):
+		_ball.freeze = false
+		_ball.visible = true
+	reset_ball()
+
+# ------------------------------------------------------------------------
 # Ball lifecycle
 # ------------------------------------------------------------------------
 func _on_ball_drained(_drained_ball: Node) -> void:
@@ -159,10 +190,10 @@ func reset_ball() -> void:
 		_ball.reset_to(get_spawn_position())
 
 # ------------------------------------------------------------------------
-# Debug / QA input (suppressed while Edit Mode owns input)
+# Debug / QA input (suppressed while the editor owns input)
 # ------------------------------------------------------------------------
 func _input(event: InputEvent) -> void:
-	if _edit_mode != null and _edit_mode.is_active():
+	if _editor != null and _editor.is_active():
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:

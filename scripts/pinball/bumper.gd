@@ -18,6 +18,9 @@ extends StaticBody3D
 	set(value):
 		height = value
 		_rebuild()
+## Per-bumper impulse override. < 0 means "use the global tuning.bumper_impulse".
+## Lets individual bumpers be weakened/strengthened (e.g. to break a bounce loop).
+@export var impulse_override: float = -1.0
 ## Minimum seconds between pops so a resting/grinding ball does not machine-gun.
 @export var retrigger_cooldown: float = 0.08
 
@@ -92,6 +95,7 @@ func _on_body_entered(body: Node) -> void:
 	if outward.length() < 0.001:
 		outward = Vector3(0.0, 0.0, 1.0)
 	outward = outward.normalized()
-	ball.apply_central_impulse(outward * tuning.bumper_impulse)
+	var impulse := tuning.bumper_impulse if impulse_override < 0.0 else impulse_override
+	ball.apply_central_impulse(outward * impulse)
 	_cooldown = retrigger_cooldown
-	GameEvents.component_hit.emit(self, ball, {"type": "bumper", "impulse": tuning.bumper_impulse})
+	GameEvents.component_hit.emit(self, ball, {"type": "bumper", "impulse": impulse})

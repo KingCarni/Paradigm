@@ -23,6 +23,8 @@ extends StaticBody3D
 	set(value):
 		height = value
 		_rebuild()
+## Per-slingshot impulse override. < 0 means "use the global tuning.slingshot_impulse".
+@export var impulse_override: float = -1.0
 @export var retrigger_cooldown: float = 0.08
 
 var _cooldown: float = 0.0
@@ -96,6 +98,7 @@ func _on_body_entered(body: Node) -> void:
 	to_ball.y = 0.0
 	if normal.dot(to_ball) < 0.0:
 		normal = -normal
-	ball.apply_central_impulse(normal * tuning.slingshot_impulse)
+	var impulse := tuning.slingshot_impulse if impulse_override < 0.0 else impulse_override
+	ball.apply_central_impulse(normal * impulse)
 	_cooldown = retrigger_cooldown
-	GameEvents.component_hit.emit(self, ball, {"type": "slingshot", "impulse": tuning.slingshot_impulse})
+	GameEvents.component_hit.emit(self, ball, {"type": "slingshot", "impulse": impulse})

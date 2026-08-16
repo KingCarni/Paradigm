@@ -323,6 +323,7 @@
       ],
       "properties": {
         "height": 1.6,
+        "impulse_override": -1.0,
         "length": 2.2,
         "thickness": 0.4
       },
@@ -347,6 +348,7 @@
       ],
       "properties": {
         "height": 1.6,
+        "impulse_override": -1.0,
         "length": 2.2,
         "thickness": 0.4
       },
@@ -371,6 +373,7 @@
       ],
       "properties": {
         "height": 1.6,
+        "impulse_override": -1.0,
         "radius": 1.0
       },
       "rotation_deg": [
@@ -394,6 +397,7 @@
       ],
       "properties": {
         "height": 1.6,
+        "impulse_override": -1.0,
         "radius": 1.0
       },
       "rotation_deg": [
@@ -417,6 +421,7 @@
       ],
       "properties": {
         "height": 1.6,
+        "impulse_override": -1.0,
         "radius": 1.0
       },
       "rotation_deg": [

@@ -72,12 +72,10 @@ func _apply_runtime_rotation() -> void:
 	rotation.y = _placement_yaw + _current_yaw
 
 func _edit_mode_is_active() -> bool:
-	if get_tree() == null or get_tree().current_scene == null:
+	if get_tree() == null:
 		return false
-	var edit := get_tree().current_scene.find_child("EditMode", true, false)
-	if edit == null or not edit.has_method("is_active"):
-		return false
-	return bool(edit.call("is_active"))
+	var ed := get_tree().get_first_node_in_group("table_editor")
+	return ed != null and ed.has_method("is_active") and bool(ed.call("is_active"))
 
 ## Convert the live animated transform back to the authored placement transform
 ## and release physics synchronization so direct transform edits are respected.
